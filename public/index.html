@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="KiwiSpend"/>
+<meta name="theme-color" content="#080d1a"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icon-192.png"/>
+<title>KiwiSpend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#080d1a; --surface:#0f1729; --surface2:#1a2540; --border:rgba(99,179,237,0.12);
+  --accent:#38bdf8; --accent2:#818cf8; --accent3:#34d399; --danger:#f87171; --warn:#fbbf24;
+  --text:#e2eaf6; --muted:#7891b5; --radius:16px;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Mono',monospace}
+#app{display:flex;flex-direction:column;height:100dvh;height:100vh}
+.header{padding:calc(var(--safe-top) + 14px) 20px 14px;background:linear-gradient(180deg,rgba(8,13,26,.98),rgba(8,13,26,.85));backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:relative;z-index:10}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.03em}
+.logo span{color:var(--accent)}
+.user-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.65rem;color:var(--muted);cursor:pointer}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--safe-bottom) + 80px)}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;padding:8px 0 calc(var(--safe-bottom) + 8px);background:rgba(8,13,26,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;z-index:10}
+.tab-btn{background:none;border:none;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 16px;border-radius:12px;transition:all .2s;font-family:'DM Mono',monospace;font-size:.6rem}
+.tab-btn .icon{font-size:1.3rem}
+.tab-btn.active{color:var(--accent)}
+.page{display:none;padding:16px}
+.page.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.card-title{font-family:'Syne',sans-serif;font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.hero-card{background:linear-gradient(135deg,#0d1f3c,#0f172a,#0c1829);border:1px solid rgba(56,189,248,.2);border-radius:20px;padding:20px;margin-bottom:12px;position:relative;overflow:hidden}
+.hero-card::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(56,189,248,.08),transparent 70%)}
+.hero-amount{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;letter-spacing:-.04em}
+.hero-label{font-size:.65rem;color:var(--muted);margin-top:2px}
+.hero-sub{display:flex;gap:16px;margin-top:16px}
+.hero-stat{flex:1}
+.hero-stat .val{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700}
+.hero-stat .lbl{font-size:.6rem;color:var(--muted);margin-top:1px}
+.progress-bar{height:6px;background:var(--surface2);border-radius:3px;margin-top:16px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.34,1.56,.64,1)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px}
+.stat-tile .val{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700;margin-top:4px}
+.stat-tile .lbl{font-size:.58rem;color:var(--muted)}
+.cat-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.cat-row:last-child{border:none}
+.cat-icon{font-size:1.3rem;width:32px;text-align:center}
+.cat-info{flex:1}
+.cat-name{font-size:.8rem;font-weight:500}
+.cat-count{font-size:.6rem;color:var(--muted)}
+.cat-amount{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem}
+.cat-bar{height:3px;border-radius:2px;margin-top:4px}
+.add-btn{width:100%;padding:14px;border-radius:14px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;margin-bottom:16px;box-shadow:0 4px 20px rgba(56,189,248,.25);transition:transform .15s}
+.add-btn:active{transform:scale(.97)}
+.expense-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px}
+.expense-icon{font-size:1.4rem;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:10px}
+.expense-info{flex:1;min-width:0}
+.expense-desc{font-size:.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.expense-meta{font-size:.6rem;color:var(--muted);margin-top:2px}
+.expense-amount{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--danger)}
+.delete-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:24px 24px 0 0;padding:24px;padding-bottom:calc(24px + var(--safe-bottom));width:100%;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:20px}
+.drag-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.field{margin-bottom:14px}
+.field label{font-size:.65rem;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em}
+.field input,.field select{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Mono',monospace;font-size:.9rem;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field select option{background:var(--surface2)}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.cat-chip{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 4px;cursor:pointer;text-align:center;transition:all .15s;font-size:.6rem;color:var(--muted)}
+.cat-chip .emoji{font-size:1.3rem;display:block;margin-bottom:2px}
+.cat-chip.selected{border-color:var(--accent);color:var(--accent);background:rgba(56,189,248,.1)}
+.btn-primary{width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;background:var(--accent);color:var(--bg);font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;transition:opacity .2s}
+.btn-primary:active{opacity:.8}
+.btn-secondary{width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;font-size:.85rem;margin-top:8px;transition:all .2s}
+.btn-secondary:active{background:var(--surface2)}
+.week-selector{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
+.week-selector::-webkit-scrollbar{display:none}
+.week-chip{flex-shrink:0;padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:.65rem;cursor:pointer;white-space:nowrap;transition:all .2s}
+.week-chip.active{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border:none}
+.settings-label{font-size:.85rem}
+.settings-sublabel{font-size:.65rem;color:var(--muted);margin-top:2px}
+.settings-val{font-family:'Syne',sans-serif;font-weight:700;color:var(--accent)}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:3rem;margin-bottom:12px}
+.empty-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin-bottom:6px}
+.empty-sub{font-size:.75rem;line-height:1.5}
+.toast{position:fixed;bottom:calc(80px + var(--safe-bottom) + 10px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:.78rem;opacity:0;transition:all .3s;z-index:200;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.green{color:var(--accent3)}.red{color:var(--danger)}.yellow{color:var(--warn)}.blue{color:var(--accent)}
+/* Auth / Setup screens */
+.auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;padding:30px 24px;background:var(--bg)}
+.auth-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:2rem;letter-spacing:-.04em;margin-bottom:8px}
+.auth-logo span{color:var(--accent)}
+.auth-sub{font-size:.8rem;color:var(--muted);margin-bottom:40px;text-align:center}
+.auth-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px}
+.auth-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:20px}
+.slot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.slot-btn{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px 10px;cursor:pointer;text-align:center;transition:all .2s;color:var(--muted)}
+.slot-btn .slot-num{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--accent)}
+.slot-btn .slot-label{font-size:.65rem;margin-top:4px}
+.slot-btn.taken{opacity:.4;cursor:not-allowed;border-color:transparent}
+.slot-btn.taken .slot-num{color:var(--muted)}
+/* Report section */
+.report-btn{display:flex;align-items:center;gap:10px;width:100%;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:'DM Mono',monospace;font-size:.82rem;margin-bottom:8px;transition:all .2s}
+.report-btn:active{background:var(--surface);border-color:var(--accent)}
+.report-btn .r-icon{font-size:1.3rem}
+.report-btn .r-info{flex:1;text-align:left}
+.report-btn .r-title{font-weight:600;margin-bottom:2px}
+.report-btn .r-sub{font-size:.65rem;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-logo">Kiwi<span>Spend</span></div>
+  <div class="auth-sub">Your personal weekly expense tracker</div>
+  <div class="auth-card">
+    <div class="auth-title" id="authTitle">Welcome back</div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="loginUsername" placeholder="your username" autocomplete="username" autocapitalize="none"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••" autocomplete="current-password"/>
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Sign In</button>
+    <button class="btn-secondary" onclick="showSetup()">Create Account →</button>
+    <div id="authError" style="color:var(--danger);font-size:.75rem;margin-top:10px;text-align:center"></div>
+  </div>
+</div>
+
+<!-- Setup Screen -->
+<div id="setupScreen" style="display:none" class="auth-screen">
+  <div class="auth-logo">Kiwi<span>Spend</span></div>
+  <div class="auth-sub" id="setupSub">Choose your account slot</div>
+  <div class="auth-card" id="setupCard">
+    <div class="auth-title">Create Account</div>
+    <div id="setupSlots" class="slot-grid"></div>
+    <div id="setupForm" style="display:none">
+      <div class="field">
+        <label>Display Name</label>
+        <input type="text" id="setupName" placeholder="e.g. Uday"/>
+      </div>
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="setupUsername" placeholder="e.g. uday" autocapitalize="none"/>
+      </div>
+      <div class="field">
+        <label>Password (min 6 chars)</label>
+        <input type="password" id="setupPassword" placeholder="••••••"/>
+      </div>
+      <button class="btn-primary" onclick="doSetup()">Create Account</button>
+      <button class="btn-secondary" onclick="cancelSetup()">← Back</button>
+      <div id="setupError" style="color:var(--danger);font-size:.75rem;margin-top:10px;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" style="display:none">
+  <header class="header">
+    <div class="logo">Kiwi<span>Spend</span></div>
+    <div class="user-chip" id="userChip" onclick="doLogout()">— · Logout</div>
+  </header>
+  <div class="content">
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="week-selector" id="weekSelector"></div>
+      <div class="hero-card">
+        <div class="hero-label">SPENT THIS WEEK</div>
+        <div class="hero-amount" id="heroSpent">$0.00</div>
+        <div class="hero-sub">
+          <div class="hero-stat"><div class="val green" id="heroIncome">$0</div><div class="lbl">WEEKLY INCOME</div></div>
+          <div class="hero-stat"><div class="val" id="heroRemaining">$0</div><div class="lbl">REMAINING</div></div>
+          <div class="hero-stat"><div class="val blue" id="heroSavings">0%</div><div class="lbl">SAVINGS RATE</div></div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="heroProgress" style="width:0%;background:var(--accent3)"></div></div>
+      </div>
+      <div class="grid2">
+        <div class="stat-tile"><div class="lbl">BUDGET TARGET</div><div class="val" id="statBudget">$0</div></div>
+        <div class="stat-tile"><div class="lbl">BUDGET LEFT</div><div class="val" id="statBudgetLeft">$0</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Spending by Category</div>
+        <div id="categoryList"><div class="empty"><div class="empty-icon">🍃</div><div class="empty-sub">No expenses yet this week</div></div></div>
+      </div>
+    </div>
+
+    <!-- EXPENSES -->
+    <div class="page" id="page-expenses">
+      <button class="add-btn" onclick="openAddExpense()">+ Add Expense</button>
+      <div class="week-selector" id="weekSelectorExp"></div>
+      <div id="expenseList"></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page" id="page-reports">
+      <div class="card">
+        <div class="card-title">Weekly Summary Report</div>
+        <p style="font-size:.8rem;color:var(--muted);margin-bottom:16px;line-height:1.6">Download a full breakdown of any week's spending as PDF or CSV.</p>
+        <div class="field">
+          <label>Select Week</label>
+          <select id="reportWeekSelect"></select>
+        </div>
+        <button class="report-btn" onclick="downloadReport('pdf')">
+          <span class="r-icon">📄</span>
+          <div class="r-info"><div class="r-title">Download PDF</div><div class="r-sub">Formatted report with charts & summary</div></div>
+          <span>↓</span>
+        </button>
+        <button class="report-btn" onclick="downloadReport('csv')">
+          <span class="r-icon">📊</span>
+          <div class="r-info"><div class="r-title">Download CSV</div><div class="r-sub">Raw data for Excel or Sheets</div></div>
+          <span>↓</span>
+        </button>
+      </div>
+      <div class="card">
+        <div class="card-title">Past 8 Weeks Overview</div>
+        <div id="weeksSummaryList"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="card-title">This Week's Setup</div>
+        <div class="field"><label>Weekly Income (NZD $)</label><input type="number" id="settingIncome" placeholder="e.g. 900" inputmode="decimal"/></div>
+        <div class="field"><label>Spending Budget Target (NZD $)</label><input type="number" id="settingBudget" placeholder="e.g. 600" inputmode="decimal"/></div>
+        <button class="btn-primary" onclick="saveWeekSettings()">Save Week Settings</button>
+      </div>
+      <div class="card">
+        <div class="card-title">New Week</div>
+        <button class="btn-secondary" style="margin:0" onclick="createNewWeek()">+ Start New Week</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Account</div>
+        <div class="settings-row">
+          <div><div class="settings-label">Signed in as</div><div class="settings-sublabel" id="settingsUser">—</div></div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Install as App</div><div class="settings-sublabel">iOS: Share → Add to Home Screen</div></div>
+          <span>📱</span>
+        </div>
+        <button class="btn-secondary" style="margin-top:12px" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="showPage('dashboard',this)"><span class="icon">📊</span>Dashboard</button>
+    <button class="tab-btn" onclick="showPage('expenses',this)"><span class="icon">💸</span>Expenses</button>
+    <button class="tab-btn" onclick="showPage('reports',this);loadReports()"><span class="icon">📋</span>Reports</button>
+    <button class="tab-btn" onclick="showPage('settings',this)"><span class="icon">⚙️</span>Settings</button>
+  </nav>
+</div>
+
+<!-- Add Expense Modal -->
+<div class="modal-overlay" id="addExpenseModal">
+  <div class="modal">
+    <div class="drag-handle"></div>
+    <div class="modal-title">Add Expense</div>
+    <div class="field"><label>Category</label><div class="cat-grid" id="catGrid"></div></div>
+    <div class="field"><label>Amount (NZD $)</label><input type="number" id="expAmount" placeholder="0.00" inputmode="decimal" step="0.01"/></div>
+    <div class="field"><label>Description (optional)</label><input type="text" id="expDesc" placeholder="e.g. Coffee at Customs"/></div>
+    <div class="field"><label>Date</label><input type="date" id="expDate"/></div>
+    <button class="btn-primary" onclick="saveExpense()">Save Expense</button>
+    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────
+const API = (window.BACKEND_URL || '') + '/api';
+// Set your deployed backend URL here or via build env:
+// const API = 'https://kiwispend-backend.vercel.app/api';
+
+let token = localStorage.getItem('ks_token');
+let currentUser = null;
+let weeks = [], currentWeekId = null, categories = [], selectedCategory = null;
+let selectedSetupSlot = null;
+
+// ── Auth ───────────────────────────────────────────────────
+async function initAuth() {
+  if (!token) return showAuthScreen();
+  try {
+    const data = await apiFetch('/auth');
+    currentUser = data.user;
+    showApp();
+  } catch { token = null; localStorage.removeItem('ks_token'); showAuthScreen(); }
+}
+
+function showAuthScreen() {
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+}
+
+async function showSetup() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('setupForm').style.display = 'none';
+  const data = await apiFetch('/setup');
+  const grid = document.getElementById('setupSlots');
+  grid.innerHTML = data.slots.map(s => `
+    <div class="slot-btn ${s.claimed ? 'taken' : ''}" onclick="${s.claimed ? '' : `selectSlot(${s.slot})`}">
+      <div class="slot-num">${s.slot}</div>
+      <div class="slot-label">${s.claimed ? 'Taken' : 'Available'}</div>
+    </div>`).join('');
+  if (data.setupFull) {
+    document.getElementById('setupSub').textContent = 'All 4 accounts are taken';
+  }
+}
+
+function selectSlot(slot) {
+  selectedSetupSlot = slot;
+  document.getElementById('setupSlots').style.display = 'none';
+  document.getElementById('setupForm').style.display = 'block';
+}
+
+function cancelSetup() {
+  document.getElementById('setupSlots').style.display = 'grid';
+  document.getElementById('setupForm').style.display = 'none';
+  selectedSetupSlot = null;
+}
+
+async function doSetup() {
+  const display_name = document.getElementById('setupName').value.trim();
+  const username = document.getElementById('setupUsername').value.trim();
+  const password = document.getElementById('setupPassword').value;
+  document.getElementById('setupError').textContent = '';
+  try {
+    const data = await apiFetch('/setup', 'POST', { slot: selectedSetupSlot, username, password, display_name });
+    token = data.token; currentUser = data.user;
+    localStorage.setItem('ks_token', token);
+    showApp();
+  } catch(e) { document.getElementById('setupError').textContent = e.message; }
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  document.getElementById('authError').textContent = '';
+  try {
+    const data = await apiFetch('/auth', 'POST', { username, password });
+    token = data.token; currentUser = data.user;
+    localStorage.setItem('ks_token', token);
+    showApp();
+  } catch(e) { document.getElementById('authError').textContent = e.message; }
+}
+
+function doLogout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('ks_token');
+  showAuthScreen();
+}
+
+function showApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('userChip').textContent = `${currentUser.display_name} · Logout`;
+  document.getElementById('settingsUser').textContent = `${currentUser.display_name} (@${currentUser.username})`;
+  initApp();
+}
+
+// ── App Init ───────────────────────────────────────────────
+async function initApp() {
+  await Promise.all([loadWeeks(), loadCategories()]);
+  renderWeekSelectors();
+  await loadDashboard();
+  await loadExpenses();
+}
+
+async function loadWeeks() {
+  weeks = await apiFetch('/weeks');
+  const cur = await apiFetch('/weeks?id=current');
+  currentWeekId = cur.id;
+  if (!weeks.find(w => w.id === cur.id)) weeks.unshift(cur);
+  document.getElementById('settingIncome').value = cur.income || '';
+  document.getElementById('settingBudget').value = cur.budget_target || '';
+}
+
+async function loadCategories() {
+  categories = await apiFetch('/categories');
+  renderCatGrid();
+}
+
+// ── Dashboard ──────────────────────────────────────────────
+async function loadDashboard() {
+  if (!currentWeekId) return;
+  const data = await apiFetch(`/analytics?week_id=${currentWeekId}`);
+  const pct = data.week.income > 0 ? Math.min((data.totalSpent / data.week.income) * 100, 100) : 0;
+  document.getElementById('heroSpent').textContent = fmt(data.totalSpent);
+  document.getElementById('heroIncome').textContent = fmt(data.week.income);
+  const rem = parseFloat(data.week.income) - data.totalSpent;
+  const remEl = document.getElementById('heroRemaining');
+  remEl.textContent = fmt(Math.abs(rem));
+  remEl.className = rem < 0 ? 'val red' : 'val green';
+  document.getElementById('heroSavings').textContent = data.savingsRate + '%';
+  const prog = document.getElementById('heroProgress');
+  prog.style.width = pct + '%';
+  prog.style.background = pct > 90 ? 'var(--danger)' : pct > 70 ? 'var(--warn)' : 'var(--accent3)';
+  document.getElementById('statBudget').textContent = fmt(data.week.budget_target);
+  const bl = parseFloat(data.week.budget_target) - data.totalSpent;
+  const blEl = document.getElementById('statBudgetLeft');
+  blEl.textContent = fmt(Math.abs(bl));
+  blEl.className = 'val ' + (bl < 0 ? 'red' : 'green');
+  const catList = document.getElementById('categoryList');
+  const cats = Object.entries(data.byCategory).sort((a,b) => b[1].total - a[1].total);
+  if (!cats.length) { catList.innerHTML = '<div class="empty"><div class="empty-icon">🍃</div><div class="empty-sub">No expenses this week</div></div>'; return; }
+  const max = cats[0][1].total;
+  catList.innerHTML = cats.map(([name, info]) => `
+    <div class="cat-row">
+      <div class="cat-icon">${info.icon || '💰'}</div>
+      <div class="cat-info">
+        <div class="cat-name">${name}</div>
+        <div class="cat-bar" style="width:${(info.total/max*100).toFixed(0)}%;background:${info.color || '#6366f1'}"></div>
+        <div class="cat-count">${info.count} transaction${info.count !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="cat-amount">${fmt(info.total)}</div>
+    </div>`).join('');
+}
+
+// ── Expenses ───────────────────────────────────────────────
+async function loadExpenses() {
+  const list = document.getElementById('expenseList');
+  const expenses = await apiFetch(`/expenses?week_id=${currentWeekId}`);
+  if (!expenses.length) { list.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-title">No expenses yet</div><div class="empty-sub">Tap the button above to add your first expense</div></div>'; return; }
+  list.innerHTML = expenses.map(e => `
+    <div class="expense-item">
+      <div class="expense-icon">${e.icon || '💰'}</div>
+      <div class="expense-info">
+        <div class="expense-desc">${e.description || e.category}</div>
+        <div class="expense-meta">${e.category} · ${e.date}</div>
+      </div>
+      <div class="expense-amount">${fmt(e.amount)}</div>
+      <button class="delete-btn" onclick="deleteExpense(${e.id})">🗑</button>
+    </div>`).join('');
+}
+
+async function deleteExpense(id) {
+  if (!confirm('Delete this expense?')) return;
+  await apiFetch(`/expenses?id=${id}`, 'DELETE');
+  toast('Expense deleted'); await refresh();
+}
+
+function openAddExpense() {
+  document.getElementById('expAmount').value = '';
+  document.getElementById('expDesc').value = '';
+  document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
+  selectedCategory = null;
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+  document.getElementById('addExpenseModal').classList.add('open');
+}
+function closeModal() { document.getElementById('addExpenseModal').classList.remove('open'); }
+
+function renderCatGrid() {
+  document.getElementById('catGrid').innerHTML = categories.map(c =>
+    `<div class="cat-chip" onclick="selectCat('${c.name}',this)"><span class="emoji">${c.icon}</span>${c.name.split(' ')[0]}</div>`
+  ).join('');
+}
+function selectCat(name, el) {
+  selectedCategory = name;
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function saveExpense() {
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  const desc = document.getElementById('expDesc').value;
+  const date = document.getElementById('expDate').value;
+  if (!selectedCategory) { toast('Please select a category'); return; }
+  if (!amount || amount <= 0) { toast('Please enter an amount'); return; }
+  await apiFetch('/expenses', 'POST', { week_id: currentWeekId, category: selectedCategory, description: desc, amount, date });
+  closeModal(); toast('✅ Expense added!'); await refresh();
+}
+
+// ── Week Selectors ─────────────────────────────────────────
+function renderWeekSelectors() {
+  ['weekSelector','weekSelectorExp'].forEach(id => {
+    const el = document.getElementById(id);
+    el.innerHTML = weeks.slice(0,6).map(w =>
+      `<div class="week-chip ${w.id === currentWeekId ? 'active' : ''}" onclick="switchWeek(${w.id})">${w.week_label}</div>`
+    ).join('');
+  });
+}
+
+function switchWeek(id) {
+  currentWeekId = id;
+  const w = weeks.find(w => w.id === id);
+  document.getElementById('settingIncome').value = w?.income || '';
+  document.getElementById('settingBudget').value = w?.budget_target || '';
+  renderWeekSelectors(); loadDashboard(); loadExpenses();
+}
+
+// ── Settings ───────────────────────────────────────────────
+async function saveWeekSettings() {
+  const income = parseFloat(document.getElementById('settingIncome').value) || 0;
+  const budget = parseFloat(document.getElementById('settingBudget').value) || 0;
+  const w = weeks.find(w => w.id === currentWeekId);
+  await apiFetch(`/weeks?id=${currentWeekId}`, 'PUT', { income, budget_target: budget, week_label: w?.week_label });
+  await loadWeeks(); await refresh(); toast('✅ Week settings saved!');
+}
+
+async function createNewWeek() {
+  await apiFetch('/weeks', 'POST', {});
+  toast('✅ New week created!'); await loadWeeks(); renderWeekSelectors(); await refresh();
+}
+
+// ── Reports ────────────────────────────────────────────────
+async function loadReports() {
+  // Populate week dropdown
+  const sel = document.getElementById('reportWeekSelect');
+  sel.innerHTML = weeks.map(w => `<option value="${w.id}">${w.week_label}</option>`).join('');
+
+  // Load summary table
+  const summary = await apiFetch('/analytics?type=summary');
+  const list = document.getElementById('weeksSummaryList');
+  if (!summary.length) { list.innerHTML = '<div class="empty"><div class="empty-sub">No weeks yet</div></div>'; return; }
+  list.innerHTML = summary.map(w => {
+    const pct = w.income > 0 ? ((w.totalSpent / w.income) * 100).toFixed(0) : 0;
+    const col = pct > 90 ? 'var(--danger)' : pct > 70 ? 'var(--warn)' : 'var(--accent3)';
+    return `<div class="cat-row">
+      <div class="cat-info">
+        <div class="cat-name">${w.week_label}</div>
+        <div style="height:3px;border-radius:2px;margin-top:4px;width:${Math.min(pct,100)}%;background:${col}"></div>
+        <div class="cat-count">${fmt(w.totalSpent)} spent of ${fmt(w.income)} income</div>
+      </div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:.85rem;color:${col}">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+async function downloadReport(format) {
+  const weekId = document.getElementById('reportWeekSelect').value;
+  if (!weekId) { toast('Select a week first'); return; }
+  toast(`⏳ Generating ${format.toUpperCase()}...`);
+  try {
+    const res = await fetch(`${API}/report?week_id=${weekId}&format=${format}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `KiwiSpend_report.${format}`; a.click();
+    URL.revokeObjectURL(url);
+    toast(`✅ ${format.toUpperCase()} downloaded!`);
+  } catch { toast('❌ Download failed'); }
+}
+
+// ── Utilities ──────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+async function refresh() { await loadDashboard(); await loadExpenses(); renderWeekSelectors(); }
+
+async function apiFetch(path, method='GET', body=null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function fmt(n) { return '$' + parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+document.getElementById('addExpenseModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+initAuth();
+</script>
+</body>
+</html>
