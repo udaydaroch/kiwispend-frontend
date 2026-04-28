@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Expenses from './pages/Expenses'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
+import Notifications from './components/Notifications'
 
 export default function App() {
   const [screen, setScreen] = useState('loading')
@@ -74,7 +75,10 @@ export default function App() {
     <div id="app">
       <header className="header">
         <div className="logo">Kiwi<span>Spend</span></div>
-        <div className="user-chip" onClick={logout}>{currentUser?.display_name} · Logout</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Notifications token={token} currentWeekId={currentWeekId} />
+          <div className="user-chip" onClick={logout}>{currentUser?.display_name} · Logout</div>
+        </div>
       </header>
 
       <div className="content">

@@ -4,6 +4,7 @@ import { fmt } from '../api'
 export default function Expenses({ api, currentWeekId, weeks, setCurrentWeekId, categories, showToast }) {
   const [expenses, setExpenses] = useState([])
   const [modalOpen, setModalOpen] = useState(false)
+  const [editingExpense, setEditingExpense] = useState(null) // null = add, object = edit
   const [amount, setAmount] = useState('')
   const [desc, setDesc] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
@@ -23,27 +24,48 @@ export default function Expenses({ api, currentWeekId, weeks, setCurrentWeekId, 
     loadExpenses()
   }
 
-  async function saveExpense() {
-    if (!selectedCat) { showToast('Please select a category'); return }
-    const amt = parseFloat(amount)
-    if (!amt || amt <= 0) { showToast('Please enter an amount'); return }
-    await api('/expenses', 'POST', { week_id: currentWeekId, category: selectedCat, description: desc, amount: amt, date })
-    setModalOpen(false)
-    setAmount(''); setDesc(''); setSelectedCat(null)
-    showToast('✅ Expense added!')
-    loadExpenses()
-  }
-
-  function openModal() {
+  function openAdd() {
+    setEditingExpense(null)
     setAmount(''); setDesc('')
     setDate(new Date().toISOString().split('T')[0])
     setSelectedCat(null)
     setModalOpen(true)
   }
 
+  function openEdit(e) {
+    setEditingExpense(e)
+    setAmount(String(parseFloat(e.amount)))
+    setDesc(e.description || '')
+    setDate(e.date)
+    setSelectedCat(e.category)
+    setModalOpen(true)
+  }
+
+  function closeModal() {
+    setModalOpen(false)
+    setEditingExpense(null)
+  }
+
+  async function saveExpense() {
+    if (!selectedCat) { showToast('Please select a category'); return }
+    const amt = parseFloat(amount)
+    if (!amt || amt <= 0) { showToast('Please enter an amount'); return }
+
+    if (editingExpense) {
+      await api(`/expenses?id=${editingExpense.id}`, 'PUT', { category: selectedCat, description: desc, amount: amt, date })
+      showToast('✅ Expense updated!')
+    } else {
+      await api('/expenses', 'POST', { week_id: currentWeekId, category: selectedCat, description: desc, amount: amt, date })
+      showToast('✅ Expense added!')
+    }
+
+    closeModal()
+    loadExpenses()
+  }
+
   return (
     <>
-      <button className="add-btn" onClick={openModal}>+ Add Expense</button>
+      <button className="add-btn" onClick={openAdd}>+ Add Expense</button>
 
       <div className="week-selector">
         {weeks.slice(0, 6).map(w => (
@@ -67,15 +89,16 @@ export default function Expenses({ api, currentWeekId, weeks, setCurrentWeekId, 
             <div className="expense-meta">{e.category} · {e.date}</div>
           </div>
           <div className="expense-amount">{fmt(e.amount)}</div>
+          <button className="edit-btn" onClick={() => openEdit(e)}>✏️</button>
           <button className="delete-btn" onClick={() => deleteExpense(e.id)}>🗑</button>
         </div>
       ))}
 
-      {/* Add Expense Modal */}
-      <div className={`modal-overlay ${modalOpen ? 'open' : ''}`} onClick={e => e.target === e.currentTarget && setModalOpen(false)}>
+      {/* Add / Edit Expense Modal */}
+      <div className={`modal-overlay ${modalOpen ? 'open' : ''}`} onClick={e => e.target === e.currentTarget && closeModal()}>
         <div className="modal">
           <div className="drag-handle" />
-          <div className="modal-title">Add Expense</div>
+          <div className="modal-title">{editingExpense ? 'Edit Expense' : 'Add Expense'}</div>
           <div className="field">
             <label>Category</label>
             <div className="cat-grid">
@@ -98,8 +121,8 @@ export default function Expenses({ api, currentWeekId, weeks, setCurrentWeekId, 
             <label>Date</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
-          <button className="btn-primary" onClick={saveExpense}>Save Expense</button>
-          <button className="btn-secondary" onClick={() => setModalOpen(false)}>Cancel</button>
+          <button className="btn-primary" onClick={saveExpense}>{editingExpense ? 'Update Expense' : 'Save Expense'}</button>
+          <button className="btn-secondary" onClick={closeModal}>Cancel</button>
         </div>
       </div>
     </>
