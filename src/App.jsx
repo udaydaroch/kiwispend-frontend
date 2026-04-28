@@ -85,7 +85,7 @@ export default function App() {
         {page === 'dashboard' && <Dashboard {...shared} />}
         {page === 'expenses'  && <Expenses  {...shared} />}
         {page === 'reports'   && <Reports   {...shared} />}
-        {page === 'settings'  && <Settings  {...shared} currentUser={currentUser} />}
+        {page === 'settings'  && <Settings  {...shared} currentUser={currentUser} token={token} />}
       </div>
 
       <nav className="tab-bar">
