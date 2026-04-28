@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { API, fmt } from '../api'
 
 function parseCsv(text) {
@@ -117,8 +118,8 @@ export default function Reports({ token, api, weeks, showToast }) {
         })}
       </div>
 
-      {/* Preview Overlay */}
-      {preview && (
+      {/* Preview Overlay — portalled to body to avoid iOS fixed-positioning issues */}
+      {preview && createPortal(
         <div className="preview-overlay">
           <div className="preview-header">
             <button className="preview-close" onClick={closePreview}>✕</button>
@@ -147,7 +148,8 @@ export default function Reports({ token, api, weeks, showToast }) {
               <div className="preview-no-pdf"><div>Loading…</div></div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
