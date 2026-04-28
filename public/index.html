@@ -359,7 +359,8 @@ async function doLogin() {
   document.getElementById('authError').textContent = '';
   try {
     const data = await apiFetch('/auth', 'POST', { username, password });
-    token = data.token; currentUser = data.user;
+    token = data.token;  // ← make sure this line exists
+    currentUser = data.user;
     localStorage.setItem('ks_token', token);
     showApp();
   } catch(e) { document.getElementById('authError').textContent = e.message; }
