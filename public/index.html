@@ -117,6 +117,23 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 /* Report section */
 .report-btn{display:flex;align-items:center;gap:10px;width:100%;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:'DM Mono',monospace;font-size:.82rem;margin-bottom:8px;transition:all .2s}
 .report-btn:active{background:var(--surface);border-color:var(--accent)}
+/* Preview overlay */
+.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:150;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .25s}
+.preview-overlay.open{opacity:1;pointer-events:all}
+.preview-header{display:flex;align-items:center;gap:10px;padding:calc(var(--safe-top) + 14px) 16px 14px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.preview-close{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;font-size:1rem;padding:6px 10px;line-height:1}
+.preview-title{flex:1;font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.preview-dl{background:var(--accent);border:none;border-radius:8px;color:var(--bg);cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:.78rem;padding:8px 14px;white-space:nowrap}
+.preview-body{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+.preview-iframe{width:100%;height:100%;border:none;background:#fff}
+.preview-no-pdf{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--muted);text-align:center;padding:24px}
+.preview-no-pdf .big{font-size:3rem}
+.csv-table-wrap{overflow:auto;flex:1;padding:12px}
+.csv-table{width:100%;border-collapse:collapse;font-size:.72rem}
+.csv-table th{background:var(--surface2);color:var(--accent);padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
+.csv-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
+.csv-table tr:last-child td{border:none}
+.csv-table tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
 .report-btn .r-icon{font-size:1.3rem}
 .report-btn .r-info{flex:1;text-align:left}
 .report-btn .r-title{font-weight:600;margin-bottom:2px}
@@ -281,6 +298,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <button class="btn-primary" onclick="saveExpense()">Save Expense</button>
     <button class="btn-secondary" onclick="closeModal()">Cancel</button>
   </div>
+</div>
+
+<!-- Report Preview Overlay -->
+<div class="preview-overlay" id="previewOverlay">
+  <div class="preview-header">
+    <button class="preview-close" onclick="closePreview()">✕</button>
+    <div class="preview-title" id="previewTitle">Preview</div>
+    <button class="preview-dl" onclick="downloadPreview()">↓ Download</button>
+  </div>
+  <div class="preview-body" id="previewBody"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -549,22 +576,80 @@ async function loadReports() {
   }).join('');
 }
 
+let _previewBlob = null, _previewFormat = null, _previewBlobUrl = null;
+
 async function downloadReport(format) {
-  const weekId = document.getElementById('reportWeekSelect').value;
+  const sel = document.getElementById('reportWeekSelect');
+  const weekId = sel.value;
   if (!weekId) { toast('Select a week first'); return; }
+  const label = sel.options[sel.selectedIndex]?.text || 'Report';
   toast(`⏳ Generating ${format.toUpperCase()}...`);
   try {
     const res = await fetch(`${API}/report?week_id=${weekId}&format=${format}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Failed');
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `KiwiSpend_report.${format}`; a.click();
-    URL.revokeObjectURL(url);
-    toast(`✅ ${format.toUpperCase()} downloaded!`);
-  } catch { toast('❌ Download failed'); }
+    _previewBlob = await res.blob();
+    _previewFormat = format;
+    _showPreview(label, format);
+  } catch { toast('❌ Generation failed'); }
+}
+
+function _showPreview(label, format) {
+  document.getElementById('previewTitle').textContent = `${label} · ${format.toUpperCase()}`;
+  const body = document.getElementById('previewBody');
+
+  if (format === 'pdf') {
+    if (_previewBlobUrl) URL.revokeObjectURL(_previewBlobUrl);
+    _previewBlobUrl = URL.createObjectURL(_previewBlob);
+    // Check if browser can render PDF in iframe (desktop yes, iOS Safari no)
+    const canEmbed = !(/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream);
+    if (canEmbed) {
+      body.innerHTML = `<iframe class="preview-iframe" src="${_previewBlobUrl}"></iframe>`;
+    } else {
+      body.innerHTML = `<div class="preview-no-pdf"><div class="big">📄</div><div>PDF preview isn't supported in this browser.</div><div style="font-size:.7rem">Tap Download to save the file.</div></div>`;
+    }
+  } else {
+    _previewBlob.text().then(text => {
+      const rows = _parseCsv(text);
+      if (!rows.length) { body.innerHTML = '<div class="preview-no-pdf"><div>No data</div></div>'; return; }
+      const [header, ...data] = rows;
+      body.innerHTML = `<div class="csv-table-wrap"><table class="csv-table">
+        <thead><tr>${header.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${data.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div>`;
+    });
+  }
+  document.getElementById('previewOverlay').classList.add('open');
+}
+
+function _parseCsv(text) {
+  return text.trim().split('\n').map(line => {
+    const cells = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
+      else { cur += ch; }
+    }
+    cells.push(cur);
+    return cells;
+  });
+}
+
+function closePreview() {
+  document.getElementById('previewOverlay').classList.remove('open');
+  document.getElementById('previewBody').innerHTML = '';
+  if (_previewBlobUrl) { URL.revokeObjectURL(_previewBlobUrl); _previewBlobUrl = null; }
+}
+
+function downloadPreview() {
+  if (!_previewBlob) return;
+  const url = URL.createObjectURL(_previewBlob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `KiwiSpend_report.${_previewFormat}`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`✅ ${_previewFormat.toUpperCase()} downloaded!`);
 }
 
 // ── Utilities ──────────────────────────────────────────────
